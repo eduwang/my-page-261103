@@ -1,60 +1,77 @@
-import './style.css'
-import heroImg from './assets/hero.png'
-import javascriptLogo from './assets/javascript.svg'
-import viteLogo from './assets/vite.svg'
-import { setupCounter } from './counter.js'
+﻿import './style.css'
 
-document.querySelector('#app').innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${javascriptLogo}" class="framework" alt="JavaScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.js</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+const menuButton = document.querySelector('.menu-toggle')
+const navigation = document.querySelector('.main-nav')
 
-<div class="ticks"></div>
+function setMenuOpen(open) {
+  menuButton.setAttribute('aria-expanded', String(open))
+  menuButton.setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기')
+  navigation.classList.toggle('is-open', open)
+}
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-          <img class="button-icon" src="${javascriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+menuButton.addEventListener('click', () => {
+  setMenuOpen(menuButton.getAttribute('aria-expanded') !== 'true')
+})
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
+navigation.addEventListener('click', (event) => {
+  if (event.target.closest('a')) setMenuOpen(false)
+})
 
-setupCounter(document.querySelector('#counter'))
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && menuButton.getAttribute('aria-expanded') === 'true') {
+    setMenuOpen(false)
+    menuButton.focus()
+  }
+})
+
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.header-inner')) setMenuOpen(false)
+})
+
+const desktop = window.matchMedia('(min-width: 761px)')
+desktop.addEventListener('change', () => setMenuOpen(false))
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+if ('IntersectionObserver' in window) {
+  if (!reducedMotion.matches) {
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.remove('reveal-pending')
+          observer.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.08 })
+    document.querySelectorAll('.reveal').forEach((element) => {
+      element.classList.add('reveal-pending')
+      revealObserver.observe(element)
+    })
+  }
+
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return
+      navigation.querySelectorAll('a').forEach((link) => {
+        if (link.hash === `#${entry.target.id}`) {
+          link.setAttribute('aria-current', 'location')
+        } else {
+          link.removeAttribute('aria-current')
+        }
+      })
+    })
+  }, { rootMargin: '-15% 0px -65% 0px' })
+  document.querySelectorAll('main > section').forEach((section) => sectionObserver.observe(section))
+}
+
+const scene = document.querySelector('.math-scene')
+const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
+scene.addEventListener('pointermove', (event) => {
+  if (reducedMotion.matches || !finePointer.matches) return
+  const bounds = scene.getBoundingClientRect()
+  scene.style.setProperty('--pointer-x', `${((event.clientX - bounds.left) / bounds.width - 0.5) * 18}px`)
+  scene.style.setProperty('--pointer-y', `${((event.clientY - bounds.top) / bounds.height - 0.5) * 18}px`)
+})
+scene.addEventListener('pointerleave', () => {
+  scene.style.setProperty('--pointer-x', '0px')
+  scene.style.setProperty('--pointer-y', '0px')
+})
